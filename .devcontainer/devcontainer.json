@@ -1,0 +1,14 @@
+{
+  "name": "proof-of-done",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "git config core.hooksPath githooks",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.fontSize": 24,
+        "editor.fontSize": 22,
+        "workbench.startupEditor": "readme"
+      }
+    }
+  }
+}

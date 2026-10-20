@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# pre-push — refuse a push unless (1) every change to toy code comes with a
+# PROOF.md entry, and (2) the tests pass. Fails closed: if it cannot run, it
+# refuses. Arm once per clone:  git config core.hooksPath githooks
+set -uo pipefail
+root="$(git rev-parse --show-toplevel)" || { echo "pre-push REFUSED: not a git repo" >&2; exit 2; }
+zero=0000000000000000000000000000000000000000
+
+while read -r _lref lsha _rref rsha; do
+  [ "$lsha" = "$zero" ] && continue                  # deleting a ref
+  if [ "$rsha" = "$zero" ]; then                     # new branch: whole tree
+    files="$(git diff --name-only "$(git hash-object -t tree /dev/null)" "$lsha")"
+  else
+    files="$(git diff --name-only "$rsha" "$lsha")"
+  fi
+  code="$(printf '%s\n' "$files" | grep '^toy/' | grep -v '^toy/test_')"
+  if [ -n "$code" ] && ! printf '%s\n' "$files" | grep -qx 'PROOF.md'; then
+    echo "pre-push REFUSED — toy code changed, no PROOF.md entry:" >&2
+    printf '  %s\n' $code >&2
+    echo "  Name the mutation you watched fail, in PROOF.md." >&2
+    exit 4
+  fi
+done
+
+if ! bash "$root/run-tests.sh" >&2; then
+  echo "pre-push REFUSED — tests fail" >&2
+  exit 1
+fi
+echo "pre-push: passed" >&2
